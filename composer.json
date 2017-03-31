@@ -1,5 +1,5 @@
 {
-    "name": "eAliwei/CakeQueue",
+    "name": "ea-liwei/cake-queue",
     "description": "CakeQueue plugin for CakePHP",
     "type": "cakephp-plugin",
     "require": {
