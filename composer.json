@@ -1,0 +1,17 @@
+{
+    "name": "eAliwei/CakeQueue",
+    "description": "CakeQueue plugin for CakePHP",
+    "type": "cakephp-plugin",
+    "require": {
+        "php": ">=5.5.9",
+        "cakephp/cakephp": ">=3.3.2 <4.0.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "CakeQueue\\": "src"
+        }
+    },
+    "suggest": {
+        "pda/pheanstalk": "Required to use the Beanstalk queue driver (~3.0)."
+    }
+}
