@@ -151,8 +151,8 @@ class DatabaseEngine extends QueueEngine
     {
         $queue = $this->getQueue($queue);
         $this->_db->begin();
-        if ($job = $this->_getNextAvailableJob($queue)) {
-            return $this->_marshalJob($job, $queue);
+        if ($job = $this->_getNextJob($queue)) {
+            return $this->_markJob($job, $queue);
         }
         $this->_db->commit();
 
@@ -160,11 +160,11 @@ class DatabaseEngine extends QueueEngine
     }
 
     /**
-     * [getNextAvailableJob description]
+     * [_getNextJob description]
      * @param  string $queue [description]
      * @return array
      */
-    protected function _getNextAvailableJob($queue)
+    protected function _getNextJob($queue)
     {
         return $this->_db->newQuery()
             ->select(['id', 'queue', 'payload', 'attempts', 'reserved_at', 'available_at'])
@@ -191,12 +191,12 @@ class DatabaseEngine extends QueueEngine
     }
 
     /**
-     * [_marshalJob description]
+     * [_markJob description]
      * @param array $job [description]
      * @param string $queue [description]
      * @return array
      */
-    protected function _marshalJob($job, $queue)
+    protected function _markJob($job, $queue)
     {
         $job['reserved_at'] = Chronos::now()->getTimestamp();
         $job['attempts']++;

@@ -70,14 +70,4 @@ class BeanstalkdJob extends Job
 
         return (int)$stats->reserves;
     }
-
-    /**
-     * 失败处理
-     *
-     * @return bool
-     */
-    public function faild()
-    {
-        return true;
-    }
 }

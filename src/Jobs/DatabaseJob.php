@@ -69,14 +69,4 @@ class DatabaseJob extends Job
     {
         return $this->_job['attempts'];
     }
-
-    /**
-     * 失败处理
-     *
-     * @return bool
-     */
-    public function faild()
-    {
-        return true;
-    }
 }

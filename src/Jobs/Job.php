@@ -1,6 +1,8 @@
 <?php
 namespace CakeQueue\Jobs;
 
+use Cake\Core\Configure;
+use Cake\Datasource\ConnectionManager;
 use InvalidArgumentException;
 
 abstract class Job
@@ -50,6 +52,25 @@ abstract class Job
     public function maxTries()
     {
         return $this->payload()['maxTries'];
+    }
+
+    /**
+     * [failed description]
+     * @param  [type] $e [description]
+     * @return void
+     */
+    public function failed($e)
+    {
+        if (Configure::read('Queue.failed.enable') === true) {
+            $connection = Configure::readOrFail('Queue.failed.connection');
+            $table = Configure::readOrFail('Queue.failed.table');
+            $db = ConnectionManager::get($connection);
+            $db->insert($table, [
+                'queue' => $this->getQueue(),
+                'payload' => $this->getRawBody(),
+                'exception' => $e->__toString()
+            ]);
+        }
     }
 
     /**

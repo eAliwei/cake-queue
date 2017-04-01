@@ -1,9 +1,8 @@
 <?php
 namespace CakeQueue\Shell\Task;
 
-use CakeQueue\Jobs\SendEmailJob;
+use CakeQueue\Exception\FaildJobException;
 use CakeQueue\Queue\Queue;
-use Cake\Chronos\Chronos;
 use Cake\Console\Shell;
 use Exception;
 use RuntimeException;
@@ -21,7 +20,7 @@ class WorkerTask extends Shell
                 if ($job = Queue::pop()) {
                     $class = $job->getJobName();
                     $this->out(sprintf(
-                        'ID:%s Job:%s Attempts:%s',
+                        '<info>ID:%s Run:%s@handle</info> %s',
                         $job->getJobId(),
                         $class,
                         $job->attempts()
@@ -42,12 +41,10 @@ class WorkerTask extends Shell
                 if ($job) {
                     // 重试次数
                     if ($job->attempts() < $job->maxTries()) {
-                        $job->release(10);
+                        $job->release();
                     } else {
                         // 超过重试次数删除job
-                        if (method_exists($job, 'faild')) {
-                            $job->faild($e);
-                        }
+                        $job->failed($e);
                         $job->delete();
                     }
                 }
