@@ -1,12 +1,14 @@
 <?php
 namespace CakeQueue\Jobs;
 
+use CakeQueue\TableRegistryTrait;
 use Cake\Core\Configure;
-use Cake\Datasource\ConnectionManager;
 use InvalidArgumentException;
 
 abstract class Job
 {
+    use TableRegistryTrait;
+
     protected $_queue;
 
     /**
@@ -57,19 +59,19 @@ abstract class Job
     /**
      * [failed description]
      * @param  [type] $e [description]
-     * @return void
+     * @return mixed
      */
     public function failed($e)
     {
         if (Configure::read('Queue.failed.enable') === true) {
-            $connection = Configure::readOrFail('Queue.failed.connection');
-            $table = Configure::readOrFail('Queue.failed.table');
-            $db = ConnectionManager::get($connection);
-            $db->insert($table, [
+            $table = $this->_failedJobsTable();
+            $job = $table->newEntity([
                 'queue' => $this->getQueue(),
                 'payload' => $this->getRawBody(),
                 'exception' => $e->__toString()
-            ]);
+            ], ['validate' => false]);
+
+            return $table->save($job);
         }
     }
 

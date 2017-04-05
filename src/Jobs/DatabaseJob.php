@@ -2,6 +2,7 @@
 namespace CakeQueue\Jobs;
 
 use CakeQueue\Queue\Engine\DatabaseEngine;
+use Cake\ORM\Entity;
 
 class DatabaseJob extends Job
 {
@@ -10,11 +11,11 @@ class DatabaseJob extends Job
 
     /**
      * [__construct description]
-     * @param array $job                        [description]
+     * @param \Cake\ORM\Entity $job             [description]
      * @param DatabaseEngine $engine            [description]
      * @param string        $queue              [description]
      */
-    public function __construct(array $job, DatabaseEngine $engine, $queue)
+    public function __construct(Entity $job, DatabaseEngine $engine, $queue)
     {
         $this->_job = $job;
         $this->_engine = $engine;
@@ -48,7 +49,7 @@ class DatabaseJob extends Job
      */
     public function getRawBody()
     {
-        return $this->_job['payload'];
+        return $this->_job->payload;
     }
 
     /**
@@ -57,7 +58,7 @@ class DatabaseJob extends Job
      */
     public function getJobId()
     {
-        return $this->_job['id'];
+        return $this->_job->id;
     }
 
     /**
@@ -67,6 +68,6 @@ class DatabaseJob extends Job
      */
     public function attempts()
     {
-        return $this->_job['attempts'];
+        return $this->_job->attempts;
     }
 }

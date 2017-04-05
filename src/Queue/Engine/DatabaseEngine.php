@@ -3,17 +3,19 @@ namespace CakeQueue\Queue\Engine;
 
 use CakeQueue\Jobs\DatabaseJob;
 use CakeQueue\Queue\QueueEngine;
+use CakeQueue\TableRegistryTrait;
 use Cake\Chronos\Chronos;
-use Cake\Datasource\ConnectionManager;
 
 class DatabaseEngine extends QueueEngine
 {
+    use TableRegistryTrait;
+
     /**
-     * Instance of ConnectionManager
+     * Instance of Table
      *
-     * @var \Cake\Database\Connection
+     * @var \Cake\ORM\Table;
      */
-    protected $_db;
+    protected $_table;
 
     /**
      * The default queue configuration
@@ -21,8 +23,9 @@ class DatabaseEngine extends QueueEngine
      * @var array
      */
     protected $_defaultConfig = [
-        'connection' => 'default',
+        'connectionName' => 'default',
         'table' => 'jobs',
+        'model' => null,
         'retryAfter' => 60
     ];
 
@@ -48,9 +51,9 @@ class DatabaseEngine extends QueueEngine
      */
     protected function _connect()
     {
-        $this->_db = ConnectionManager::get($this->_config['connection']);
+        $this->_table = $this->_jobsTable($this->_config);
 
-        return $this->_db->connect();
+        return $this->_table->connection()->connect();
     }
 
     /**
@@ -61,12 +64,9 @@ class DatabaseEngine extends QueueEngine
      */
     public function size($queue = null)
     {
-        return (int)$db->newQuery()
-            ->select('COUNT(id) AS total')
-            ->from($this->_config['table'])
+        return $this->_table->find()
             ->where(['queue' => $this->getQueue($queue)])
-            ->execute()
-            ->fetch('assoc')['total'];
+            ->count();
     }
 
     /**
@@ -88,18 +88,18 @@ class DatabaseEngine extends QueueEngine
 
     /**
      * [release description]
-     * @param  [type] $queue [description]
-     * @param  [type] $job   [description]
-     * @param  [type] $delay [description]
-     * @return [type]        [description]
+     * @param  string $queue [description]
+     * @param  \Cake\ORM\Entity $job   [description]
+     * @param  int $delay [description]
+     * @return mixed
      */
     public function release($queue, $job, $delay)
     {
         return $this->_pushToDatabase(
             $queue,
-            $job['payload'],
+            $job->payload,
             $delay,
-            $job['attempts']
+            $job->attempts
         );
     }
 
@@ -113,32 +113,26 @@ class DatabaseEngine extends QueueEngine
      */
     protected function _pushToDatabase($queue, $payload, $delay = 0, $attempts = 0)
     {
-        return $this->_db->insert(
-            $this->_config['table'],
-            [
-                'queue' => $queue,
-                'payload' => $payload,
-                'attempts' => $attempts,
-                'reserved_at' => null,
-                'available_at' => Chronos::now()->addSeconds($delay)->getTimestamp(),
-            ]
-        )
-        ->lastInsertId();
+        $job = $this->_table->newEntity([
+            'queue' => $queue,
+            'payload' => $payload,
+            'attempts' => $attempts,
+            'reserved_at' => null,
+            'available_at' => Chronos::now()->addSeconds($delay)->getTimestamp()
+        ], ['validate' => false]);
+        $this->_table->save($job);
+
+        return $job->id;
     }
 
     /**
      * [delete description]
-     * @param  array $job [description]
+     * @param \Cake\ORM\Entity $job [description]
      * @return mixed
      */
     public function delete($job)
     {
-        return $this->_db->delete(
-            $this->_config['table'],
-            [
-                'id' => $job['id']
-            ]
-        );
+        return $this->_table->delete($job);
     }
 
     /**
@@ -150,11 +144,12 @@ class DatabaseEngine extends QueueEngine
     public function pop($queue = null)
     {
         $queue = $this->getQueue($queue);
-        $this->_db->begin();
+
+        $this->_table->connection()->begin();
         if ($job = $this->_getNextJob($queue)) {
             return $this->_markJob($job, $queue);
         }
-        $this->_db->commit();
+        $this->_table->connection()->commit();
 
         return null;
     }
@@ -162,50 +157,39 @@ class DatabaseEngine extends QueueEngine
     /**
      * [_getNextJob description]
      * @param  string $queue [description]
-     * @return array
+     * @return \Cake\ORM\Entity
      */
     protected function _getNextJob($queue)
     {
-        return $this->_db->newQuery()
+        return $this->_table->find()
             ->select(['id', 'queue', 'payload', 'attempts', 'reserved_at', 'available_at'])
-            ->from($this->_config['table'])
-            ->where([
-                'queue' => $queue,
-                'OR' => [
-                    [
-                        'reserved_at IS NULL',
-                        'available_at <=' => Chronos::now()->getTimestamp()
-                    ],
-                    [
-                        'reserved_at <=' => Chronos::now()->subSeconds($this->_config['retryAfter'])->getTimestamp()
-                    ]
-                ]
-            ])
-            ->order([
-                'id' => 'ASC'
-            ])
-            ->limit(1)
+            ->where(function ($exp) {
+                return $exp->lte('reserved_at', Chronos::now()->subSeconds($this->_config['retryAfter'])->getTimestamp());
+            })
+            ->orWhere(function ($exp) {
+                return $exp->isNull('reserved_at')->lte('available_at', Chronos::now()->getTimestamp());
+            })
+            ->where(['queue' => $queue])
+            ->orderAsc('id')
             ->epilog('FOR UPDATE')
-            ->execute()
-            ->fetch('assoc');
+            ->first();
     }
 
     /**
      * [_markJob description]
-     * @param array $job [description]
+     * @param \Cake\ORM\Entity $job [description]
      * @param string $queue [description]
-     * @return array
+     * @return DatabaseJob
      */
     protected function _markJob($job, $queue)
     {
-        $job['reserved_at'] = Chronos::now()->getTimestamp();
-        $job['attempts']++;
-        $this->_db->update(
-            $this->_config['table'],
-            $job,
-            ['id' => $job['id']]
-        );
-        $this->_db->commit();
+        $job = $this->_table->patchEntity($job, [
+            'reserved_at' => Chronos::now()->getTimestamp(),
+            'attempts' => $job->attempts + 1
+        ], ['validate' => false]);
+
+        $this->_table->save($job);
+        $this->_table->connection()->commit();
 
         return new DatabaseJob($job, $this, $queue);
     }

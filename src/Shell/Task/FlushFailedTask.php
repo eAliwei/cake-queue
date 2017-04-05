@@ -1,12 +1,12 @@
 <?php
 namespace CakeQueue\Shell\Task;
 
+use CakeQueue\TableRegistryTrait;
 use Cake\Console\Shell;
-use Cake\Core\Configure;
 
-class TableTask extends Shell
+class FlushFailedTask extends Shell
 {
-    use CreateMigrationTrait;
+    use TableRegistryTrait;
 
     /**
      * [main description]
@@ -14,7 +14,9 @@ class TableTask extends Shell
      */
     public function main()
     {
-        $this->_createMigrationFile(Configure::readOrFail('Queue.connections.database.table'), 'jobs.ctp');
+        $table = $this->_failedJobsTable();
+        $table->deleteAll([1 => 1]);
+        $this->info('All failed jobs deleted successfully!');
     }
 
     /**
@@ -26,7 +28,7 @@ class TableTask extends Shell
     {
         $parser = parent::getOptionParser();
         $parser->setDescription(
-            'Create a migration for the queue jobs database table'
+            'Flush all of the failed queue jobs'
         );
 
         return $parser;

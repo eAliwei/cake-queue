@@ -8,13 +8,12 @@ composer require ea-liwei/cake-queue
 ./bin/cake plugin load -b CakeQueue
 
 # 使用database时执行
-./bin/cake queue table jobs
+./bin/cake queue table
 
 # 失败job保存数据表
-./bin/cake queue table faild_jobs
+./bin/cake queue failed_table
 
 ./bin/cake migrations migrate
-
 ```
 #### 配置
 ```php
@@ -92,5 +91,16 @@ class QueueController extends AppController
 ```
 
 ```bash
+# 启动worker
 ./bin/cake queue worker
+
+# 显示所有失败队列
+./bin/cake queue list_failed
+
+# 清空失败队列
+./bin/cake queue flush_failed
+
+# 重试失败队列
+./bin/cake queue retry [ID]
+
 ```

@@ -93,6 +93,25 @@ class BeanstalkdEngine extends QueueEngine
     }
 
     /**
+     * Push a raw payload onto the queue.
+     *
+     * @param  string $payload [description]
+     * @param  string $queue   [description]
+     * @param  array  $options [description]
+     * @return mixed
+     */
+    public function pushRaw($payload, $queue = null, array $options = [])
+    {
+        return $this->_pheanstalk->useTube($this->getQueue($queue))
+            ->put(
+                $payload,
+                isset($options['priority']) ? $options['priority'] : Pheanstalk::DEFAULT_PRIORITY,
+                isset($options['delay']) ? $options['delay'] : Pheanstalk::DEFAULT_DELAY,
+                isset($options['ttr']) ? $options['ttr'] : Pheanstalk::DEFAULT_TTR
+            );
+    }
+
+    /**
      * Pop the next job off of the queue.
      *
      * @param  string  $queue Queue name

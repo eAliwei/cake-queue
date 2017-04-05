@@ -4,7 +4,7 @@ namespace CakeQueue\Shell\Task;
 use Cake\Console\Shell;
 use Cake\Core\Configure;
 
-class TableTask extends Shell
+class FailedTableTask extends Shell
 {
     use CreateMigrationTrait;
 
@@ -14,7 +14,7 @@ class TableTask extends Shell
      */
     public function main()
     {
-        $this->_createMigrationFile(Configure::readOrFail('Queue.connections.database.table'), 'jobs.ctp');
+        $this->_createMigrationFile(Configure::readOrFail('Queue.failed.table'), 'failed_jobs.ctp');
     }
 
     /**
@@ -26,7 +26,7 @@ class TableTask extends Shell
     {
         $parser = parent::getOptionParser();
         $parser->setDescription(
-            'Create a migration for the queue jobs database table'
+            'Create a migration for the failed queue jobs database table'
         );
 
         return $parser;

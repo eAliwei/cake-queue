@@ -9,7 +9,11 @@ class QueueShell extends Shell
 {
     public $tasks = [
         'CakeQueue.Worker',
-        'CakeQueue.Table'
+        'CakeQueue.Table',
+        'CakeQueue.FailedTable',
+        'CakeQueue.FlushFailed',
+        'CakeQueue.ListFailed',
+        'CakeQueue.Retry'
     ];
 
     /**

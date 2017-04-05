@@ -23,8 +23,9 @@ class WorkerTask extends Shell
                         '<info>ID:%s Run:%s@handle</info> %s',
                         $job->getJobId(),
                         $class,
-                        $job->attempts()
+                        $job->attempts() > 1 ? 'Retry:' . ($job->attempts() - 1) : ''
                     ));
+
                     if (class_exists($class)) {
                         $run = new $class();
                         $run->data($job->getData())
@@ -40,7 +41,7 @@ class WorkerTask extends Shell
             } catch (Exception $e) {
                 if ($job) {
                     // 重试次数
-                    if ($job->attempts() < $job->maxTries()) {
+                    if ($job->attempts() <= $job->maxTries()) {
                         $job->release();
                     } else {
                         // 超过重试次数删除job
@@ -61,7 +62,7 @@ class WorkerTask extends Shell
     {
         $parser = parent::getOptionParser();
         $parser->setDescription(
-            'WorkerTask Description'
+            'Start processing jobs on the queue as a daemon'
         );
 
         return $parser;
