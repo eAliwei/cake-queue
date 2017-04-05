@@ -24,15 +24,17 @@ return [
         'default' => env('QUEUE_ENGINE', 'database'),
         'failed' => [
             'enable' => true,
-            'connection' => 'default',
-            'table' => 'failed_jobs'
+            'connectionName' => 'default',
+            'table' => 'failed_jobs',
+            'model' => null
         ],
         'connections' => [
             'database' => [
                 'className' => 'CakeQueue.Database',
-                'connection' => 'default',
+                'retryAfter' => 60,
+                'connectionName' => 'default',
                 'table' => 'jobs',
-                'retryAfter' => 60
+                'model' => null
             ],
             'beanstalkd' => [
                 'className' => 'CakeQueue.Beanstalkd',
